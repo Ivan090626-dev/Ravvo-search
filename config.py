@@ -45,3 +45,10 @@ AUTO_PRICE_PRESETS = [50, 100, 300, 500, 1000, 5000]  # TON
 USE_CUSTOM_EMOJI = os.getenv("USE_CUSTOM_EMOJI", "1") == "1"
 # Наборы премиум-эмодзи (ссылка t.me/addemoji/ИМЯ -> ИМЯ), через запятую; можно добавить и командой /addpack
 EMOJI_PACKS = [p.strip() for p in os.getenv("EMOJI_PACKS", "").split(",") if p.strip()]
+
+# --- Точная проверка через аккаунт Telegram (отсеивает заблокированные/зарезервированные ники) ---
+# Получить на https://my.telegram.org/apps, затем один раз выполнить: python tools/login.py
+TG_API_ID = int(os.getenv("TG_API_ID", "0") or 0)
+TG_API_HASH = os.getenv("TG_API_HASH", "").strip()
+TG_SESSION = str(DATA_DIR / "user")
+TG_CHECK_CONCURRENCY = int(os.getenv("TG_CHECK_CONCURRENCY", "3"))
