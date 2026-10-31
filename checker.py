@@ -152,10 +152,16 @@ class Checker:
             return
         try:
             from telethon import TelegramClient
-            client = TelegramClient(config.TG_SESSION, config.TG_API_ID, config.TG_API_HASH)
+            if config.TG_SESSION_STRING:
+                from telethon.sessions import StringSession
+                sess = StringSession(config.TG_SESSION_STRING)
+            else:
+                sess = config.TG_SESSION
+            client = TelegramClient(sess, config.TG_API_ID, config.TG_API_HASH)
             await client.connect()
             if not await client.is_user_authorized():
-                self.tl_reason = "сессия аккаунта не авторизована (или завершена в Настройки → Устройства): python3 tools/login.py"
+                self.tl_reason = ("сессия аккаунта не авторизована или завершена в Настройки → Устройства. "
+                                  "Выполните python3 tools/login.py и вставьте выведенную строку в TG_SESSION_STRING")
                 log.warning("Сессия аккаунта не авторизована. Выполните: python3 tools/login.py")
                 await client.disconnect()
                 return

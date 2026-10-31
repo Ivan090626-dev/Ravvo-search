@@ -106,7 +106,13 @@ async def main() -> None:
     if getattr(me, "bot", False):
         await client.log_out()
         sys.exit("Вошли как бот, а нужен обычный аккаунт. Запустите заново.")
-    print(f"\nГотово, вошли как {me.first_name} (id {me.id}). Теперь запускайте: python3 main.py")
+    print(f"\nГотово, вошли как {me.first_name} (id {me.id}).")
+    from telethon.sessions import StringSession
+    string = StringSession.save(client.session)
+    print("\nДля бота на ХОСТИНГЕ добавьте переменную окружения TG_SESSION_STRING со значением ниже.")
+    print("Это полный доступ к аккаунту: никому не показывайте и не отправляйте в чат.\n")
+    print(string)
+    print("\nВажно: одну сессию нельзя использовать в двух местах сразу. Бот должен работать только на хостинге.")
     await client.disconnect()
 
 

@@ -56,3 +56,7 @@ TG_CHECK_CONCURRENCY = int(os.getenv("TG_CHECK_CONCURRENCY", "3"))
 # Если точная проверка через аккаунт не работает: False = не выдавать ники вовсе (безопасно),
 # True = выдавать непроверенные (в выдачу попадут заблокированные Telegram ники).
 ALLOW_UNVERIFIED = os.getenv("ALLOW_UNVERIFIED", "0") == "1"
+
+# Сессия аккаунта одной строкой (для хостингов, где нельзя загрузить файл data/user.session).
+# Получить: python3 tools/login.py (в конце выведет строку). Это полный доступ к аккаунту, храните как пароль.
+TG_SESSION_STRING = os.getenv("TG_SESSION_STRING", "").strip()
