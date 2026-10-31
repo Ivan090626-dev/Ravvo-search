@@ -1,0 +1,69 @@
+import asyncio
+import logging
+import sys
+
+from aiogram import BaseMiddleware, Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+
+import config
+import workers
+from core import checker, db, send_to
+from handlers import routers
+from subscription import SubscriptionMiddleware
+
+
+class UserMiddleware(BaseMiddleware):
+    """Запоминает пользователя при любом действии."""
+
+    async def __call__(self, handler, event, data):
+        u = data.get("event_from_user")
+        if u and not u.is_bot:
+            await db.upsert_user(u.id, u.username, u.full_name)
+        return await handler(event, data)
+
+
+async def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    if not config.BOT_TOKEN:
+        sys.exit("Укажите BOT_TOKEN в файле .env")
+
+    config.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    await db.init()
+    await checker.start()
+
+    bot = Bot(config.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    checker.bot = bot
+    dp = Dispatcher(storage=MemoryStorage())
+    dp.update.outer_middleware(UserMiddleware())
+    sub_mw = SubscriptionMiddleware()
+    dp.message.outer_middleware(sub_mw)
+    dp.callback_query.outer_middleware(sub_mw)
+    for r in routers:
+        dp.include_router(r)
+
+    tasks = [asyncio.create_task(workers.traps_loop(bot)), asyncio.create_task(workers.auto_loop(bot)),
+             asyncio.create_task(workers.limits_reset_loop(bot))]
+    try:
+        import emojis
+        done, _ = await emojis.load_packs(bot)
+        if done:
+            logging.info("Премиум-эмодзи подгружены: %s", done)
+        if checker.tl is None and not config.ALLOW_UNVERIFIED:
+            for aid in config.ADMIN_IDS:
+                await send_to(bot, aid, "⚠️ <b>Проверка заблокированных ников не работает</b>, поиск остановлен.\n"
+                                        f"Причина: {checker.tl_reason}")
+        me = await bot.get_me()
+        logging.info("Бот @%s запущен", me.username)
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+    finally:
+        for t in tasks:
+            t.cancel()
+        await checker.close()
+        await db.close()
+        await bot.session.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
