@@ -11,6 +11,7 @@ import config
 import workers
 from core import checker, db
 from handlers import routers
+from subscription import SubscriptionMiddleware
 
 
 class UserMiddleware(BaseMiddleware):
@@ -36,10 +37,14 @@ async def main() -> None:
     checker.bot = bot
     dp = Dispatcher(storage=MemoryStorage())
     dp.update.outer_middleware(UserMiddleware())
+    sub_mw = SubscriptionMiddleware()
+    dp.message.outer_middleware(sub_mw)
+    dp.callback_query.outer_middleware(sub_mw)
     for r in routers:
         dp.include_router(r)
 
-    tasks = [asyncio.create_task(workers.traps_loop(bot)), asyncio.create_task(workers.auto_loop(bot))]
+    tasks = [asyncio.create_task(workers.traps_loop(bot)), asyncio.create_task(workers.auto_loop(bot)),
+             asyncio.create_task(workers.limits_reset_loop(bot))]
     try:
         import emojis
         done, _ = await emojis.load_packs(bot)

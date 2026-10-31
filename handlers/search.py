@@ -44,6 +44,7 @@ async def on_search(cb: CallbackQuery) -> None:
 
     left = await remaining(uid, key)
     if left is not None and left <= 0:
+        await db.limit_hit(uid)
         await cb.answer()
         await status(cb.message, ui.limit_text(length, mode), ui.limit_kb())
         return
@@ -58,6 +59,8 @@ async def on_search(cb: CallbackQuery) -> None:
         name = await find_free(uid, length, mode)
         if name:
             await db.usage_inc(uid, key)
+            if await remaining(uid, key) == 0:
+                await db.limit_hit(uid)
             no = await db.next_card_no()
             png = await asyncio.to_thread(cards.render_card, name, no)
             await card_replace(cb.message, png, await ui.found_text(uid, name, length, mode),

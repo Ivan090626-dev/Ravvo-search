@@ -104,6 +104,17 @@ def limit_text(length: int, mode: str) -> str:
     )
 
 
+def limits_reset_text() -> str:
+    return (
+        f"{e('party')} <b>Лимиты сброшены!</b>\n\n"
+        f"Новый день — можно снова искать свободные ники."
+    )
+
+
+def limits_reset_kb() -> KB:
+    return kb([[B(text=f"{plain('search')} Искать ники", callback_data="menu")]])
+
+
 def limit_kb() -> KB:
     return kb([
         [B(text=f"{plain('gem')} Premium — {config.PREMIUM_PRICE_STARS} ⭐/мес", callback_data="premium")],

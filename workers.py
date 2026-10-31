@@ -67,3 +67,17 @@ async def auto_loop(bot: Bot) -> None:
         except Exception:
             log.exception("auto_loop")
         await asyncio.sleep(config.AUTO_CYCLE_SECONDS)
+
+
+async def limits_reset_loop(bot: Bot) -> None:
+    """После 00:00 UTC сообщает тем, кто вчера упёрся в лимит, что лимиты сброшены."""
+    await asyncio.sleep(10)
+    while True:
+        try:
+            for uid in await db.limit_hits_due():
+                await send_to(bot, uid, ui.limits_reset_text(), ui.limits_reset_kb())
+                await db.limit_hit_clear(uid)
+                await asyncio.sleep(0.05)
+        except Exception:
+            log.exception("limits_reset_loop")
+        await asyncio.sleep(60)

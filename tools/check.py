@@ -1,3 +1,8 @@
+"""Диагностика: что именно отвечают t.me, Fragment и Telegram (checkUsername) про ники.
+
+Остановите бота (Ctrl+C), затем:
+    python3 tools/check.py zoutu abcde
+"""
 import asyncio
 import sys
 from pathlib import Path
@@ -7,7 +12,7 @@ import config  # noqa: E402
 from checker import Checker  # noqa: E402
 
 
-async def main(names):
+async def main(names: list[str]) -> None:
     c = Checker()
     await c.start()
     print(f"\nТочная проверка через аккаунт: {'ВКЛЮЧЕНА' if c.tl else 'ВЫКЛЮЧЕНА (ники не фильтруются!)'}\n")

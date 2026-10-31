@@ -31,6 +31,12 @@ CREATE TABLE IF NOT EXISTS auto_notified(
 CREATE TABLE IF NOT EXISTS cards(
     id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER
 );
+CREATE TABLE IF NOT EXISTS channels(
+    chat_id INTEGER PRIMARY KEY, title TEXT, link TEXT, added INTEGER
+);
+CREATE TABLE IF NOT EXISTS limit_hits(
+    user_id INTEGER PRIMARY KEY, day TEXT
+);
 CREATE TABLE IF NOT EXISTS payments(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER, charge_id TEXT, amount INTEGER, ts INTEGER
@@ -182,3 +188,30 @@ class DB:
             "INSERT INTO payments(user_id, charge_id, amount, ts) VALUES(?,?,?,?)",
             (uid, charge_id, amount, int(time.time())), commit=True,
         )
+
+    # ---------- обязательные каналы ----------
+    async def channels_list(self) -> list[aiosqlite.Row]:
+        return await self._q("SELECT * FROM channels ORDER BY added")
+
+    async def channel_add(self, chat_id: int, title: str, link: str) -> None:
+        await self._q(
+            "INSERT INTO channels(chat_id, title, link, added) VALUES(?,?,?,?) "
+            "ON CONFLICT(chat_id) DO UPDATE SET title=excluded.title, link=excluded.link",
+            (chat_id, title, link, int(time.time())), commit=True,
+        )
+
+    async def channel_del(self, chat_id: int) -> None:
+        await self._q("DELETE FROM channels WHERE chat_id=?", (chat_id,), commit=True)
+
+    # ---------- уведомления «лимиты сброшены» ----------
+    async def limit_hit(self, uid: int) -> None:
+        await self._q(
+            "INSERT INTO limit_hits(user_id, day) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET day=excluded.day",
+            (uid, today()), commit=True,
+        )
+
+    async def limit_hits_due(self) -> list[int]:
+        return [r["user_id"] for r in await self._q("SELECT user_id FROM limit_hits WHERE day<?", (today(),))]
+
+    async def limit_hit_clear(self, uid: int) -> None:
+        await self._q("DELETE FROM limit_hits WHERE user_id=?", (uid,), commit=True)
